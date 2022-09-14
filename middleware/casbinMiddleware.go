@@ -1,11 +1,12 @@
 package middleware
 
 import (
-	"casbin/ds"
-	"casbin/dto"
-	"casbin/model"
 	"fmt"
 	"net/http"
+
+	"github.com/shaineminkyaw/road-system-background/ds"
+	"github.com/shaineminkyaw/road-system-background/dto"
+	"github.com/shaineminkyaw/road-system-background/model"
 
 	"github.com/casbin/casbin/v2"
 	"github.com/gin-gonic/gin"
@@ -96,45 +97,6 @@ func CasbinMiddleware(e *casbin.Enforcer, permission, action string) gin.Handler
 			return
 		}
 
-		// // var userName string
-		// userName := c.GetHeader("admin")
-		// if userName == "" {
-		// 	fmt.Println("headers invalid")
-		// 	c.JSON(200, gin.H{
-		// 		"code":    401,
-		// 		"message": "Unauthorized",
-		// 		"data":    "",
-		// 	})
-		// 	c.Abort()
-		// 	return
-		// }
-		// // 请求的path
-		// p := c.Request.URL.Path
-		// // 请求的方法
-		// m := c.Request.Method
-
-		// res, err := e.Enforce(userName, p, m)
-		// if err != nil {
-		// 	fmt.Println("no permission ")
-		// 	fmt.Println(err)
-		// 	c.JSON(200, gin.H{
-		// 		"code":    401,
-		// 		"message": "Unauthorized",
-		// 		"data":    "",
-		// 	})
-		// 	c.Abort()
-		// 	return
-		// }
-		// if !res {
-		// 	fmt.Println("permission check failed")
-		// 	c.JSON(200, gin.H{
-		// 		"code":    401,
-		// 		"message": "Unauthorized",
-		// 		"data":    "",
-		// 	})
-		// 	c.Abort()
-		// 	return
-		// }
 		c.Next()
 	}
 }
