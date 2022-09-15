@@ -30,10 +30,10 @@ func (ctr *adminController) Register() {
 	h := ctr.H
 	h.R.POST("refresh", ctr.refresh)
 	h.R.POST("resetPermission", ctr.setAdminPermission)
-	group := ctr.H.R.Group("/api/v0")
+	group := ctr.H.R.Group("/api/admin")
 	group.GET("list", ctr.list)
 	group.POST("create", ctr.create)
-	group.POST("ping", middleware.CasbinMiddleware(h.Enforcer, "/api/v0/ping", "GET"), ctr.ping)
+	group.POST("ping", middleware.CasbinMiddleware(h.Enforcer, "/api/admin/ping", "GET"), ctr.ping)
 	group.POST("login", ctr.login)
 	group.POST("delete", ctr.delete)
 	group.POST("updatePassword", ctr.editPassword)

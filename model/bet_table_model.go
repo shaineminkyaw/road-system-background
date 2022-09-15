@@ -7,17 +7,18 @@ type BetTable struct {
 	TableNumber       uint64    `gorm:"column:table_no" json:"table_no"`
 	Password          string    `gorm:"column:password" json:"password"`
 	Title             string    `gorm:"column:title" json:"title"`
-	Type              int8      `gorm:"column:type" json:"type"`
+	RoadType          int8      `gorm:"column:road_type" json:"road_type"`                                   //type 1:bacarat 2:Dragon tiger 3:Fire golden flower 4:Niu Niu 5:Sangong 6:28bars 7:A89
+	Type              int8      `gorm:"column:type" json:"type"`                                             // type 0:way , 1:trader
 	Cover             string    `gorm:"column:cover;comment:dealer profile or game rule photo" json:"cover"` //dealer profile or game rule photo
 	Placard           string    `gorm:"column:placard" json:"placard"`                                       //table's marquee text
 	IPLimit           string    `gorm:"column:ip_limit" json:"ip_limit"`
-	FirstLimit        string    `gorm:"column:first_limit" json:"first_limit"`
-	SecondLimit       string    `gorm:"column:second_limit" json:"second_limit"`
-	ThirdLimit        string    `gorm:"column:third_limit" json:"third_limit"`
-	FourthLimit       string    `gorm:"column:fourth_limit" json:"fourth_limit"`
+	FirstLimit        string    `gorm:"column:first_limit;comment:player_limit" json:"first_limit"`   //playerlimit
+	SecondLimit       string    `gorm:"column:second_limit;comment:banker_limit" json:"second_limit"` //banker limit
+	ThirdLimit        string    `gorm:"column:third_limit;comment:pair_limit" json:"third_limit"`     //pair limit
+	FourthLimit       string    `gorm:"column:fourth_limit;comment:tie_limit" json:"fourth_limit"`    //tie limit
 	FifthLimit        string    `gorm:"column:fifth_limit" json:"fifth_limit"`
 	AskTime           string    `gorm:"column:ask_time;default:5" json:"ask_time"`
-	Status            int8      `gorm:"column:status;default:1;comment:table status" json:"status"`
+	Status            int8      `gorm:"column:status;default:1;comment:table status" json:"status"` //status(state) 0:normal 1:disabled
 	OnlineUserNumber  int       `gorm:"column:online_user_number" json:"online_user_number"`
 	BetTime           int       `gorm:"column:bet_time;default:30;comment:countdown time" json:"bet_time"`
 	FrontType         int8      `gorm:"column:front_type;comment:terminal type" json:"front_type"`
