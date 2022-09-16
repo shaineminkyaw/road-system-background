@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/shaineminkyaw/road-system-background/ds"
 	"github.com/shaineminkyaw/road-system-background/dto"
+	"github.com/shaineminkyaw/road-system-background/middleware"
 	"github.com/shaineminkyaw/road-system-background/model"
 	"github.com/shaineminkyaw/road-system-background/utils"
 	"gorm.io/gorm"
@@ -26,11 +27,11 @@ func NewType5Controller(h *Handler) *type5Controller {
 
 func (ctr *type5Controller) Register() {
 	h := ctr.H
-	group := h.R.Group("/api/type5_table")
+	group := h.R.Group("/api/type5_table/", middleware.Cors(), middleware.AuthMiddleware())
 	group.GET("list", ctr.list)
-	group.POST("create", ctr.create)
-	group.POST("edit", ctr.edit)
-	group.POST("delete", ctr.erase)
+	group.POST("create", middleware.Authorize(h.Enforcer, "/api/type5_table/create", "POST"), ctr.create)
+	group.POST("update", middleware.Authorize(h.Enforcer, "/api/type5_table/update", "POST"), ctr.edit)
+	group.POST("delete", middleware.Authorize(h.Enforcer, "/api/type5_table/delete", "POST"), ctr.erase)
 
 }
 

@@ -40,6 +40,7 @@ type ReqAdminList struct {
 	LoginName string `json:"login_name,omitempty" form:"login_name"`
 	UserName  string `json:"username,omitempty" form:"username"`
 	Email     string `json:"email,omitempty" form:"email"`
+	IsOnline  int8   `json:"isOnline,omitempty" form:"isOnline"`
 	StartDate string `json:"start_date,omitempty" form:"start_date"`
 	EndDate   string `json:"end_date,omitempty" form:"end_date"`
 	Page      int    `json:"page,omitempty" form:"page"`

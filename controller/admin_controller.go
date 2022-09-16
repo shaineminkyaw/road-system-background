@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/shaineminkyaw/road-system-background/config"
 	"github.com/shaineminkyaw/road-system-background/ds"
 	"github.com/shaineminkyaw/road-system-background/dto"
 	"github.com/shaineminkyaw/road-system-background/factory"
@@ -28,15 +29,17 @@ func NewAdminController(h *Handler) *adminController {
 func (ctr *adminController) Register() {
 	//
 	h := ctr.H
-	h.R.POST("refresh", ctr.refresh)
+	h.R.POST("policySet", ctr.policySet)
 	h.R.POST("resetPermission", ctr.setAdminPermission)
-	group := ctr.H.R.Group("/api/admin")
-	group.GET("list", ctr.list)
-	group.POST("create", ctr.create)
-	group.POST("ping", middleware.CasbinMiddleware(h.Enforcer, "/api/admin/ping", "GET"), ctr.ping)
-	group.POST("login", ctr.login)
-	group.POST("delete", ctr.delete)
-	group.POST("updatePassword", ctr.editPassword)
+	h.R.POST("login", ctr.login)
+	//
+	group := ctr.H.R.Group("/api/admin", middleware.Cors(), middleware.AuthMiddleware())
+	group.GET("ping", middleware.Authorize(h.Enforcer, "/api/admin/ping", "GET"), ctr.ping)
+	group.GET("list", middleware.Authorize(h.Enforcer, "/api/admin/list", "POST"), ctr.list)
+	group.POST("create", middleware.Authorize(h.Enforcer, "/api/admin/create", "POST"), ctr.create)
+	group.POST("login", middleware.Authorize(h.Enforcer, "/api/admin/login", "POST"), ctr.login)
+	group.POST("delete", middleware.Authorize(h.Enforcer, "/api/admin/delete", "POST"), ctr.delete)
+	group.POST("updatePassword", middleware.Authorize(h.Enforcer, "/api/admin/updatePassword", "POST"), ctr.editPassword)
 
 }
 
@@ -125,7 +128,7 @@ type RespAdminList struct {
 	Password    string `json:"password"`
 	Email       string `json:"email"`
 	Avatar      string `json:"avatar"`
-	IsOnline    bool   `json:"is_online"`
+	IsOnline    int8   `json:"is_online"`
 	Gender      int8   `json:"gender"`
 	LoginIP     string `json:"login_ip"`
 	LastLoginIP string `json:"last_login_ip"`
@@ -163,6 +166,9 @@ func (ctr *adminController) list(c *gin.Context) {
 	}
 	if req.Email != "" {
 		db = db.Where("email LIKE ", fmt.Sprintf("%s%s%s", "%", req.Email, "%"))
+	}
+	if req.IsOnline > -1 && req.IsOnline < 2 {
+		db = db.Where("isOnline = ?", req.IsOnline)
 	}
 	db = db.Count(&total)
 	db = db.Order("id DESC")
@@ -251,6 +257,7 @@ func (ctr *adminController) delete(c *gin.Context) {
 		}
 
 	}
+
 	resp.ErrCode = 0
 	resp.ErrMsg = "success"
 	c.JSON(http.StatusOK, resp)
@@ -280,23 +287,23 @@ func (ctr *adminController) login(c *gin.Context) {
 		return
 	}
 	eAdmin := &model.Admin{
-		ID:          admin.ID,
-		UserName:    admin.UserName,
-		Email:       admin.Email,
-		Password:    admin.Password,
-		Avatar:      admin.Avatar,
-		Gender:      admin.Gender,
+		LoginName:   req.Username,
+		IsOnline:    1,
 		LoginIP:     c.ClientIP(),
 		LastLoginIP: c.ClientIP(),
-		CreadtedBy:  admin.CreadtedBy,
-		UpdatedBy:   admin.UpdatedBy,
-		IsOnline:    true,
-		LoginName:   req.Username,
 	}
 
-	err = tx.Model(&model.Admin{}).Where("id = ?", admin.ID).Updates(&eAdmin).Error
+	err = tx.Model(&model.Admin{}).Where("username = ?", req.Username).Updates(&eAdmin).Error
 	if err != nil {
 		resp.ErrCode = 509
+		resp.ErrMsg = err.Error()
+		c.JSON(http.StatusOK, resp)
+		tx.Rollback()
+		return
+	}
+	err = tx.Commit().Error
+	if err != nil {
+		resp.ErrCode = 510
 		resp.ErrMsg = err.Error()
 		c.JSON(http.StatusOK, resp)
 		tx.Rollback()
@@ -311,7 +318,7 @@ func (ctr *adminController) login(c *gin.Context) {
 		return
 	}
 
-	token, err := utils.GetAccessToken(admin.ID)
+	token, err := utils.GetAccessToken(1, config.PrivateKey)
 	if err != nil {
 		resp.ErrCode = 602
 		resp.ErrMsg = err.Error()
@@ -349,7 +356,7 @@ func (ctr *adminController) create(c *gin.Context) {
 		Email:       req.Email,
 		Password:    req.Password,
 		Avatar:      req.Avatar,
-		IsOnline:    false,
+		IsOnline:    0,
 		Gender:      req.Gender,
 		LoginIP:     c.ClientIP(),
 		LastLoginIP: c.ClientIP(),
@@ -394,7 +401,7 @@ func (ctr *adminController) create(c *gin.Context) {
 		}
 	} else {
 		resp.ErrCode = 9004
-		resp.ErrMsg = "create admin already exists ...."
+		resp.ErrMsg = "Already exists ...."
 		c.JSON(http.StatusOK, resp)
 		return
 	}
@@ -405,72 +412,7 @@ func (ctr *adminController) create(c *gin.Context) {
 
 }
 
-//@@ set route
-func (ctr *adminController) refresh(c *gin.Context) {
-	//
-
-	//add policy route
-	type Data struct {
-		Route  string
-		Method string
-	}
-
-	resp := dto.RespObj{}
-	menu := []*Data{
-		{
-			Route:  "/api/v2/ping",
-			Method: "GET",
-		}, {
-			Route:  "/api/v1/ping",
-			Method: "GET",
-		},
-		{
-			Route:  "/api/v0/ping",
-			Method: "GET",
-		},
-		{
-			Route:  "/api/v3/ping",
-			Method: "GET",
-		},
-		{
-			Route:  "/api/v4/ping",
-			Method: "POST",
-		},
-	}
-
-	for _, d := range menu {
-		rule := &model.CasbinPloicy{
-			Permission: d.Route,
-			Action:     d.Method,
-		}
-
-		casbin := &model.CasbinPloicy{}
-		err := ds.DB.Model(&model.CasbinPloicy{}).Where("permission = ?", d.Route).First(&casbin).Error
-		if err == gorm.ErrRecordNotFound && err != nil {
-			err := ds.DB.Model(&model.CasbinPloicy{}).Create(&rule).Error
-			if err != nil {
-				resp.ErrCode = http.StatusBadRequest
-				resp.ErrMsg = err.Error()
-				c.JSON(http.StatusOK, resp)
-				return
-
-			}
-		} else {
-			resp.ErrCode = 408
-			resp.ErrMsg = "route already exists..."
-			c.JSON(http.StatusOK, resp)
-			continue
-		}
-
-	}
-
-	resp.ErrCode = 0
-	resp.ErrMsg = "success"
-	c.JSON(http.StatusOK, resp)
-
-}
-
-//@@set permission
+//@@set admin permission
 func (ctr *adminController) setAdminPermission(c *gin.Context) {
 	//
 	resp := dto.RespObj{}
@@ -493,16 +435,6 @@ func (ctr *adminController) setAdminPermission(c *gin.Context) {
 		return
 	}
 
-	var rules []*model.CasbinPloicy
-
-	err = ds.DB.Model(&model.CasbinPloicy{}).Find(&rules).Error
-	if err != nil {
-		resp.ErrCode = http.StatusBadRequest
-		resp.ErrMsg = err.Error()
-		c.JSON(http.StatusOK, resp)
-		return
-	}
-
 	//role
 	adminRole := &model.Roles{}
 	err = ds.DB.Model(&model.Roles{}).Where("slug = ?", "admin").First(&adminRole).Error
@@ -513,11 +445,101 @@ func (ctr *adminController) setAdminPermission(c *gin.Context) {
 		return
 	}
 
-	//assign role
-	for _, principle := range rules {
-		bol, err := principle.AssignPermisssion(ctr.H.Enforcer, principle, adminRole.Slug)
-		if !bol || err != nil {
-			resp.ErrCode = 700
+	casbin := &model.CasbinPloicy{
+		Username:   adminRole.Slug,
+		Permission: "api/admin/resetPermission",
+		Action:     "POST",
+	}
+	err = ds.DB.Model(&model.CasbinPloicy{}).Create(&casbin).Error
+	if err != nil {
+		resp.ErrCode = 700
+		resp.ErrMsg = err.Error()
+		c.JSON(http.StatusOK, resp)
+		return
+	}
+
+	//add policy
+	e := ctr.H.Enforcer
+	ok, err := dto.RoutePolicy(e, adminRole.Slug, "api/admin/resetPermission", "POST")
+	if !ok {
+		resp.ErrCode = 701
+		resp.ErrMsg = err.Error()
+		c.JSON(http.StatusOK, resp)
+		return
+	}
+	if err != nil {
+		resp.ErrCode = 702
+		resp.ErrMsg = err.Error()
+		c.JSON(http.StatusOK, resp)
+		return
+	}
+
+	resp.ErrCode = 0
+	resp.ErrMsg = "success"
+	c.JSON(http.StatusOK, resp)
+}
+
+func (ctr *adminController) policySet(c *gin.Context) {
+	//
+
+	resp := &dto.RespObj{}
+	e := ctr.H.Enforcer
+
+	adminRoles := &model.Roles{}
+	err := ds.DB.Model(&model.Roles{}).Where("slug = ?", "admin").First(&adminRoles).Error
+	if err != nil {
+		resp.ErrCode = 900
+		resp.ErrMsg = err.Error()
+		c.JSON(http.StatusOK, resp)
+		return
+	}
+
+	menus := dto.Plocies()
+
+	for _, d := range menus {
+		rule := &model.CasbinPloicy{
+			Permission: d.Route,
+			Action:     d.Method,
+		}
+
+		casbin := &model.CasbinPloicy{}
+		err := ds.DB.Model(&model.CasbinPloicy{}).Where("permission = ?", d.Route).First(&casbin).Error
+		if err == gorm.ErrRecordNotFound && err != nil {
+			err := ds.DB.Model(&model.CasbinPloicy{}).Create(&rule).Error
+			if err != nil {
+				resp.ErrCode = http.StatusBadRequest
+				resp.ErrMsg = err.Error()
+				c.JSON(http.StatusOK, resp)
+				return
+
+			}
+		} else {
+			resp.ErrCode = 408
+			resp.ErrMsg = "route already exists..."
+			c.JSON(http.StatusOK, resp)
+			continue
+		}
+	}
+
+	policies := make([]*model.CasbinPloicy, 0)
+	err = ds.DB.Model(&model.CasbinPloicy{}).Find(&policies).Error
+	if err != nil {
+		resp.ErrCode = 902
+		resp.ErrMsg = err.Error()
+		c.JSON(http.StatusOK, resp)
+		return
+	}
+
+	for _, add := range policies {
+		ok, err := dto.RoutePolicy(e, adminRoles.Slug, add.Permission, add.Action)
+		if !ok {
+			resp.ErrCode = 701
+			resp.ErrMsg = err.Error()
+			c.JSON(http.StatusOK, resp)
+			return
+		}
+		if err != nil {
+			resp.ErrCode = 702
 			resp.ErrMsg = err.Error()
 			c.JSON(http.StatusOK, resp)
 			return

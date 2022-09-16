@@ -15,7 +15,7 @@ type Admin struct {
 	Email       string         `gorm:"column:email"  json:"email"`
 	Password    string         `gorm:"column:password" json:"password"`
 	Avatar      string         `gorm:"column:avatar" json:"avatar"`
-	IsOnline    bool           `gorm:"column:isOnline" json:"isOnline"`
+	IsOnline    int8           `gorm:"column:isOnline" json:"isOnline"` //0:not online 1:online
 	Gender      int8           `gorm:"column:gender" json:"gender"`
 	LoginIP     string         `gorm:"column:login_ip" json:"login_ip"`
 	LastLoginIP string         `gorm:"column:last_loginIP" json:"last_loginIP"`
@@ -69,6 +69,10 @@ func (cp *CasbinPloicy) AssignPermisssion(e *casbin.Enforcer, permission *Casbin
 		if err != nil {
 			return false, err
 		} else if !ok {
+			return false, err
+		}
+		bol1, err := e.AddPolicy(role, permission.Permission, permission.Action)
+		if !bol1 || err != nil {
 			return false, err
 		}
 		bol, err := e.AddRoleForUser("admin", role)

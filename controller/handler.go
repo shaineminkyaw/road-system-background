@@ -39,5 +39,17 @@ func Inject(r *gin.Engine, e *casbin.Enforcer, s *gorm.DB) *Handler {
 	type4Controller := NewType4Controller(h)
 	type4Controller.Register()
 
+	//type5 controller
+	type5Controller := NewType5Controller(h)
+	type5Controller.Register()
+
+	//type6 controller
+	type6Controller := NewType6Controller(h)
+	type6Controller.Register()
+
+	//type7 controller
+	type7Controller := NewType7Controller(h)
+	type7Controller.Register()
+
 	return h
 }

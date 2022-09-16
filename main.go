@@ -19,8 +19,7 @@ import (
 func main() {
 	//
 	r := gin.Default()
-	conf := config.Init()
-	db := ds.ConnectToDB(conf.SQL.Host, conf.SQL.Port, conf.SQL.DB, conf.SQL.User, conf.SQL.Password)
+	db := ds.ConnectToDB(config.MyDB.Host, config.MyDB.Port, config.MyDB.DB, config.MyDB.User, config.MyDB.Password)
 	e, err := ds.NewRBAC(db)
 	if err != nil {
 		log.Println(err.Error())
@@ -30,14 +29,14 @@ func main() {
 	h := controller.Inject(r, e, db)
 
 	server := http.Server{
-		Addr:           fmt.Sprintf("%v:%v", conf.APP.Host, conf.APP.Port),
+		Addr:           fmt.Sprintf("%v:%v", config.AppHost.Host, config.AppHost.Port),
 		Handler:        h.R,
 		ReadTimeout:    300 * time.Second,
 		WriteTimeout:   300 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
 	go func() {
-		log.Printf("Starting server on %v:%v\n", conf.APP.Host, conf.APP.Port)
+		log.Printf("Starting server on %v:%v\n", config.AppHost.Host, config.AppHost.Port)
 		err := server.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
 			log.Println("failed to starting server....")
