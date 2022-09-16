@@ -34,8 +34,8 @@ func (ctr *adminController) Register() {
 	h.R.POST("login", ctr.login)
 	//
 	group := ctr.H.R.Group("/api/admin", middleware.Cors(), middleware.AuthMiddleware())
-	group.GET("ping", middleware.Authorize(h.Enforcer, "/api/admin/ping", "GET"), ctr.ping)
 	group.GET("list", middleware.Authorize(h.Enforcer, "/api/admin/list", "POST"), ctr.list)
+	group.GET("ping", middleware.Authorize(h.Enforcer, "/api/admin/ping", "GET"), ctr.ping)
 	group.POST("create", middleware.Authorize(h.Enforcer, "/api/admin/create", "POST"), ctr.create)
 	group.POST("login", middleware.Authorize(h.Enforcer, "/api/admin/login", "POST"), ctr.login)
 	group.POST("delete", middleware.Authorize(h.Enforcer, "/api/admin/delete", "POST"), ctr.delete)
