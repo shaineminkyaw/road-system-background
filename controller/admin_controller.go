@@ -37,6 +37,7 @@ func (ctr *adminController) Register() {
 	group.GET("list", middleware.Authorize(h.Enforcer, "/api/admin/list", "POST"), ctr.list)
 	group.GET("ping", middleware.Authorize(h.Enforcer, "/api/admin/ping", "GET"), ctr.ping)
 	group.POST("create", middleware.Authorize(h.Enforcer, "/api/admin/create", "POST"), ctr.create)
+	group.POST("edit", middleware.Authorize(h.Enforcer, "/api/admin/edit", "POST"), ctr.edit)
 	group.POST("login", middleware.Authorize(h.Enforcer, "/api/admin/login", "POST"), ctr.login)
 	group.POST("delete", middleware.Authorize(h.Enforcer, "/api/admin/delete", "POST"), ctr.delete)
 	group.POST("updatePassword", middleware.Authorize(h.Enforcer, "/api/admin/updatePassword", "POST"), ctr.editPassword)
@@ -438,6 +439,63 @@ func (ctr *adminController) create(c *gin.Context) {
 	resp.ErrMsg = "success"
 	c.JSON(http.StatusOK, resp)
 
+}
+
+func (ctr *adminController) edit(c *gin.Context) {
+	//
+	resp := &dto.RespObj{}
+	req := dto.ReqAdminCreate{}
+
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		resp.ErrCode = 403
+		resp.ErrMsg = err.Error()
+		c.JSON(http.StatusOK, resp)
+		return
+	}
+	admin := c.MustGet("admin").(*model.Admin)
+	tx := ds.DB.Begin()
+	hPassword, err := utils.HashPassword(req.Password)
+	if err != nil {
+		resp.ErrCode = 6001
+		resp.ErrMsg = err.Error()
+		c.JSON(http.StatusOK, resp)
+		return
+	}
+	uAdmin := &model.Admin{
+		UserName: req.Username,
+		Email:    req.Email,
+		Password: hPassword,
+		Gender:   req.Gender,
+		Avatar:   req.Avatar,
+	}
+	err = tx.Model(&model.Admin{}).Where("id  =? ", admin.ID).Updates(&uAdmin).Error
+	if err != nil {
+		resp.ErrCode = 6002
+		resp.ErrMsg = err.Error()
+		c.JSON(http.StatusOK, resp)
+		tx.Rollback()
+		return
+	}
+	err = tx.Model(&model.Roles{}).Where("id =?", admin.ID).Update("slug", req.Slug).Error
+	if err != nil {
+		resp.ErrCode = 6003
+		resp.ErrMsg = err.Error()
+		c.JSON(http.StatusOK, resp)
+		tx.Rollback()
+		return
+	}
+	err = tx.Commit().Error
+	if err != nil {
+		resp.ErrCode = 6004
+		resp.ErrMsg = err.Error()
+		c.JSON(http.StatusOK, resp)
+		tx.Rollback()
+		return
+	}
+	resp.ErrCode = 0
+	resp.ErrMsg = "success"
+	c.JSON(http.StatusOK, resp)
 }
 
 //@@set admin permission
