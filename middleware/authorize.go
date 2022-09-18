@@ -57,7 +57,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			c.JSON(http.StatusOK, res)
 			return
 		}
-		c.Set("user", user)
+		c.Set("admin", user)
 		c.Next()
 	}
 }
@@ -66,7 +66,7 @@ func Authorize(e *casbin.Enforcer, permission, action string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		resp := dto.RespObj{}
 		// now existing admin
-		user, bol := c.Get("user")
+		user, bol := c.Get("admin")
 
 		if !bol {
 			resp.ErrCode = 501

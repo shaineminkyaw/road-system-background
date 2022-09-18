@@ -257,6 +257,13 @@ func (ctr *adminController) delete(c *gin.Context) {
 		}
 
 	}
+	err = tx.Commit().Error
+	if err != nil {
+		resp.ErrCode = 9012
+		resp.ErrMsg = err.Error()
+		c.JSON(http.StatusOK, resp)
+		return
+	}
 
 	resp.ErrCode = 0
 	resp.ErrMsg = "success"
@@ -349,7 +356,22 @@ func (ctr *adminController) create(c *gin.Context) {
 		c.JSON(http.StatusOK, resp)
 		return
 	}
+	tx := ds.DB.Begin()
 	eAdmin := c.MustGet("admin").(*model.Admin)
+	vRole := &model.Roles{}
+	err = tx.Model(&model.Roles{}).Where("id =?", eAdmin.ID).First(&vRole).Error
+	if err == gorm.ErrRecordNotFound || err != nil {
+		resp.ErrCode = 501
+		resp.ErrMsg = err.Error()
+		c.JSON(http.StatusOK, resp)
+		return
+	}
+	if vRole.Slug != "admin" {
+		resp.ErrCode = 502
+		resp.ErrMsg = "Unauthorized to create user"
+		c.JSON(http.StatusOK, resp)
+		return
+	}
 	cAdmin := &model.Admin{
 		UserName:    req.Username,
 		LoginName:   "",
@@ -369,7 +391,6 @@ func (ctr *adminController) create(c *gin.Context) {
 		CreatedBy: eAdmin.UserName,
 	}
 	admin := &model.Admin{}
-	tx := ds.DB.Begin()
 	err = tx.Model(&model.Admin{}).Where("email = ?", req.Email).First(&admin).Error
 	if err == gorm.ErrRecordNotFound && err != nil {
 		err = tx.Model(&model.Admin{}).Create(&cAdmin).Error
@@ -402,6 +423,13 @@ func (ctr *adminController) create(c *gin.Context) {
 	} else {
 		resp.ErrCode = 9004
 		resp.ErrMsg = "Already exists ...."
+		c.JSON(http.StatusOK, resp)
+		return
+	}
+	err = tx.Commit().Error
+	if err != nil {
+		resp.ErrCode = 1003
+		resp.ErrMsg = err.Error()
 		c.JSON(http.StatusOK, resp)
 		return
 	}
