@@ -277,7 +277,6 @@ func (ctr *adminController) login(c *gin.Context) {
 	resp := dto.RespObj{}
 	req := dto.AdminLogin{}
 
-	fmt.Println("Whole ....", c.Request)
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
 		resp.ErrCode = 403

@@ -77,7 +77,6 @@ func Authorize(e *casbin.Enforcer, permission, action string) gin.HandlerFunc {
 		}
 
 		admin := user.(*model.Admin) //bind admin data
-		fmt.Printf("Data .....%v\n", admin)
 		admin1 := &model.Admin{}
 		err := ds.DB.Model(&model.Admin{}).Where("id = ?", admin.ID).First(&admin1).Error
 		if err != nil {
@@ -98,8 +97,6 @@ func Authorize(e *casbin.Enforcer, permission, action string) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-
-		fmt.Println("IDS ....", rolesID)
 
 		//find admins with admin ids
 		userRoles := &model.Roles{}
