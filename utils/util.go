@@ -105,7 +105,6 @@ func ValidateAccessToken(token string, key *rsa.PublicKey) (*accessTokenCustomCl
 		log.Println("token is valid but could not parse claims")
 	}
 
-	// fmt.Println("finish ::::")
 	return claim, nil
 }
 

@@ -9,7 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func LogToFile() gin.HandlerFunc {
+func Logging() gin.HandlerFunc {
 
 	file, err := os.OpenFile("logs/access.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {

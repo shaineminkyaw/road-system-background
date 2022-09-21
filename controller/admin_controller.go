@@ -31,9 +31,9 @@ func (ctr *adminController) Register() {
 	h := ctr.H
 	h.R.POST("policySet", ctr.policySet)
 	h.R.POST("resetPermission", ctr.setAdminPermission)
-	h.R.POST("login", ctr.login)
+	h.R.POST("login", ctr.login, middleware.Logging())
 	//
-	group := ctr.H.R.Group("/api/admin", middleware.Cors(), middleware.AuthMiddleware())
+	group := ctr.H.R.Group("/api/admin", middleware.Cors(), middleware.AuthMiddleware(), middleware.Logging())
 	group.GET("list", middleware.Authorize(h.Enforcer, "/api/admin/list", "POST"), ctr.list)
 	group.GET("ping", middleware.Authorize(h.Enforcer, "/api/admin/ping", "GET"), ctr.ping)
 	group.POST("create", middleware.Authorize(h.Enforcer, "/api/admin/create", "POST"), ctr.create)
@@ -49,7 +49,8 @@ func (ctr *adminController) ping(c *gin.Context) {
 	var response dto.Response
 	response.Code = 0
 	response.Message = "success"
-	response.Data = "How are you...."
+	response.Data = "How are you...shaine!!!."
+
 	c.JSON(http.StatusOK, response)
 
 }

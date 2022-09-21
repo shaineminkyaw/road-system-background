@@ -1,0 +1,2 @@
+{"client_ip":"::1","latency_time":1866236,"level":"info","msg":"","req_method":"GET","req_uri":"/api/admin/ping","status_code":200,"time":"2022-09-21 15:14:49"}
+{"client_ip":"::1","latency_time":70,"level":"info","msg":"","req_method":"POST","req_uri":"/login","status_code":200,"time":"2022-09-21 15:17:02"}
