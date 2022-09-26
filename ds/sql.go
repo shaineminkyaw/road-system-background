@@ -41,6 +41,7 @@ func ConnectToDB(host, port, dbname, dbuser, dbpassword string) *gorm.DB {
 		&model.Roles{},
 		&model.CasbinPloicy{},
 		&model.BetTable{},
+		&model.UserLog{},
 	)
 
 	return db

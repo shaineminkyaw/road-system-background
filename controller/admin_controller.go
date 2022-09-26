@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/shaineminkyaw/road-system-background/config"
@@ -29,11 +30,12 @@ func NewAdminController(h *Handler) *adminController {
 func (ctr *adminController) Register() {
 	//
 	h := ctr.H
+	h.R.Use(middleware.Logging())
 	h.R.POST("policySet", ctr.policySet)
 	h.R.POST("resetPermission", ctr.setAdminPermission)
-	h.R.POST("login", ctr.login, middleware.Logging())
+	h.R.POST("login", ctr.login)
 	//
-	group := ctr.H.R.Group("/api/admin", middleware.Cors(), middleware.AuthMiddleware(), middleware.Logging())
+	group := ctr.H.R.Group("/api/admin", middleware.Cors(), middleware.AuthMiddleware())
 	group.GET("list", middleware.Authorize(h.Enforcer, "/api/admin/list", "POST"), ctr.list)
 	group.GET("ping", middleware.Authorize(h.Enforcer, "/api/admin/ping", "GET"), ctr.ping)
 	group.POST("create", middleware.Authorize(h.Enforcer, "/api/admin/create", "POST"), ctr.create)
@@ -50,6 +52,27 @@ func (ctr *adminController) ping(c *gin.Context) {
 	response.Code = 0
 	response.Message = "success"
 	response.Data = "How are you...shaine!!!."
+	admin := c.MustGet("admin").(*model.Admin)
+	if admin == nil {
+		response.Code = 400
+		response.Message = "something went wrong"
+		c.JSON(http.StatusOK, response)
+		return
+	}
+	uLog := &model.UserLog{
+		UID:       admin.ID,
+		Type:      0,
+		Ip:        c.ClientIP(),
+		Info:      config.Loggers.GetLevel().String(),
+		CreatedAt: time.Now(),
+	}
+	err := ds.DB.Model(&model.UserLog{}).Create(&uLog).Error
+	if err != nil {
+		response.Code = 403
+		response.Message = err.Error()
+		c.JSON(http.StatusOK, response)
+		return
+	}
 
 	c.JSON(http.StatusOK, response)
 
@@ -309,6 +332,23 @@ func (ctr *adminController) login(c *gin.Context) {
 		tx.Rollback()
 		return
 	}
+	//logging
+	ulog := &model.UserLog{
+		UID:       admin.ID,
+		Type:      0,
+		Ip:        c.ClientIP(),
+		Info:      config.Loggers.GetLevel().String(),
+		CreatedAt: time.Now(),
+	}
+	err = tx.Model(&model.UserLog{}).Create(&ulog).Error
+	if err != nil {
+		resp.ErrCode = 510
+		resp.ErrMsg = err.Error()
+		c.JSON(http.StatusOK, resp)
+		tx.Rollback()
+		return
+	}
+
 	err = tx.Commit().Error
 	if err != nil {
 		resp.ErrCode = 510

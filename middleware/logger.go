@@ -1,31 +1,15 @@
 package middleware
 
 import (
-	"log"
-	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/shaineminkyaw/road-system-background/config"
 	"github.com/sirupsen/logrus"
 )
 
 func Logging() gin.HandlerFunc {
-
-	file, err := os.OpenFile("logs/access.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("err %v\n", err)
-	}
-	// defer file.Close()
-
-	logger := logrus.New()
-	logger.Out = file
-
-	//Set logs level
-	logger.SetLevel(logrus.DebugLevel)
-
-	logger.SetFormatter(&logrus.JSONFormatter{
-		TimestampFormat: "2006-01-02 15:04:05",
-	})
+	logger := config.LogConf()
 
 	return func(c *gin.Context) {
 		//Start time
@@ -35,10 +19,10 @@ func Logging() gin.HandlerFunc {
 		c.Next()
 
 		//End time
-		endTime := time.Now()
+		// endTime := time.Now()
 
 		//Execution time
-		latencyTime := endTime.Sub(startTime)
+		latencyTime := time.Since(startTime).Nanoseconds()
 
 		//Request method
 		reqMethod := c.Request.Method
